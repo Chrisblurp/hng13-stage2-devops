@@ -1,0 +1,64 @@
+
+services:
+  # Blue Server
+  app_blue:
+    image: ${BLUE_IMAGE}
+    container_name: app_blue
+    ports:
+      - "8081:3000"
+    environment:
+      - APP_POOL=blue
+      - RELEASE_ID=${RELEASE_ID_BLUE}
+      - PORT=3000
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/healthz"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 10s
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  # Green Server
+  app_green:
+    image: ${GREEN_IMAGE}
+    container_name: app_green
+    ports:
+      - "8082:3000"
+    environment:
+      - APP_POOL=green
+      - RELEASE_ID=${RELEASE_ID_GREEN}
+      - PORT=3000
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/healthz"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 10s
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  # Nginx (Traffic Router)
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_lb
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf.template:/etc/nginx/nginx.conf.template:ro
+      - ./entrypoint.sh:/entrypoint.sh:ro
+    environment:
+      - ACTIVE_POOL=${ACTIVE_POOL}
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    depends_on:
+      - app_blue
+      - app_green
+    networks:
+      - app_network
+    restart: unless-stopped
+
+networks:
+  app_network:
+    driver: bridge

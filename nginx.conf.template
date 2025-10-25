@@ -1,0 +1,43 @@
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream backend {
+        # Main server (will be replaced with app_blue or app_green)
+        server app_${ACTIVE_POOL}:3000 max_fails=1 fail_timeout=5s;
+        
+        # Backup servers
+        server app_blue:3000 backup;
+        server app_green:3000 backup;
+    }
+
+    server {
+        listen 80;
+        server_name localhost;
+
+        location / {
+            proxy_pass http://backend;
+            proxy_http_version 1.1;
+            
+            # Keep headers from the app
+            proxy_pass_request_headers on;
+            
+            # Fast timeouts = quick failover
+            proxy_connect_timeout 2s;
+            proxy_send_timeout 2s;
+            proxy_read_timeout 2s;
+            
+            # Retry on errors
+            proxy_next_upstream error timeout http_500 http_502 http_503 http_504;
+            proxy_next_upstream_tries 2;
+            proxy_next_upstream_timeout 5s;
+            
+            # Pass client info
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+}
