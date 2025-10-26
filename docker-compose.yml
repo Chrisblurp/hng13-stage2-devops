@@ -5,11 +5,11 @@ services:
     image: ${BLUE_IMAGE}
     container_name: app_blue
     ports:
-      - "8081:3000"
+      -  "${BLUE_PORT}:${APP_INTERNAL_PORT}"
     environment:
       - APP_POOL=blue
       - RELEASE_ID=${RELEASE_ID_BLUE}
-      - PORT=3000
+      - PORT=${APP_INTERNAL_PORT}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/healthz"]
       interval: 5s
@@ -25,11 +25,11 @@ services:
     image: ${GREEN_IMAGE}
     container_name: app_green
     ports:
-      - "8082:3000"
+      - "${GREEN_PORT}:${APP_INTERNAL_PORT}"
     environment:
       - APP_POOL=green
       - RELEASE_ID=${RELEASE_ID_GREEN}
-      - PORT=3000
+      - PORT=${APP_INTERNAL_PORT}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/healthz"]
       interval: 5s
@@ -45,7 +45,7 @@ services:
     image: nginx:alpine
     container_name: nginx_lb
     ports:
-      - "8080:80"
+      - "${NGINX_PORT}:80"
     volumes:
       - ./nginx.conf.template:/etc/nginx/nginx.conf.template:ro
       - ./entrypoint.sh:/entrypoint.sh:ro
